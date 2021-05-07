@@ -269,7 +269,10 @@ class Scenario(object):
 
     def get_example_params(self):
         """Get example parameter names."""
-        return set(self.examples.example_params + self.feature.examples.example_params)
+        s = set(self.examples.example_params + self.feature.examples.example_params)
+        for step in self.steps:  # type: Step
+            s.update(set(step.alias_params.values()))
+        return s
 
     def get_params(self, builtin=False):
         """Get converted example params."""
@@ -296,6 +299,9 @@ class Scenario(object):
 class Step(object):
 
     """Step."""
+    CONSTANT_STEP_PARAM_RE = re.compile(r"(?<!\\)<(\w*):(.*?)>")  # constant step params regex
+    STEP_PARAM_ALIAS_RE = re.compile(r"(?<!\\)<(\w*)-(\w*)>")  # step params alias regex
+    GENERAL_STEP_PARAM_RE = re.compile(r"(?<!\\)<(\w*)>")  # general step params regex
 
     def __init__(self, name, type, indent, line_number, keyword):
         """Step constructor.
@@ -317,6 +323,22 @@ class Step(object):
         self.stop = 0
         self.scenario = None
         self.background = None
+        self.constant_params = {}
+        self.alias_params = {}
+
+        self._init_step_args_convert()
+
+    def _init_step_args_convert(self):
+        for param in self.CONSTANT_STEP_PARAM_RE.finditer(self.name):
+            key = param.group(1)
+            val = param.group(2)
+            self.constant_params[key] = val
+        for param in self.STEP_PARAM_ALIAS_RE.finditer(self.name):
+            key = param.group(1)
+            val = param.group(2)
+            self.alias_params[key] = val
+        self.raw_name = self.name
+        self.name = self.STEP_PARAM_ALIAS_RE.sub(r"<\1>", self.CONSTANT_STEP_PARAM_RE.sub(r"<\1>", self.name))
 
     def add_line(self, line):
         """Add line to the multiple step.
@@ -353,7 +375,9 @@ class Step(object):
     @property
     def params(self):
         """Get step params."""
-        return tuple(frozenset(STEP_PARAM_RE.findall(self.name)))
+        s = set(self.GENERAL_STEP_PARAM_RE.findall(self.raw_name))
+        s.update(set(self.alias_params.values()))
+        return tuple(s)
 
 
 class Background(object):

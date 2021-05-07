@@ -93,7 +93,7 @@ def _execute_step_function(request, scenario, step, step_func):
 
     :param request: PyTest request.
     :param scenario: Scenario.
-    :param step: Step.
+    :param Step step: Step.
     :param function step_func: Step function.
     :param example: Example table.
     """
@@ -104,7 +104,17 @@ def _execute_step_function(request, scenario, step, step_func):
     kw["step_func_args"] = {}
     try:
         # Get the step argument values.
-        kwargs = dict((arg, request.getfixturevalue(arg)) for arg in get_args(step_func))
+        args = get_args(step_func)
+        kwargs = {}
+        for arg in args:
+            if arg in step.constant_params:
+                # constant step params
+                kwargs[arg] = step.constant_params[arg]
+            elif arg in step.alias_params:
+                # step params alias
+                kwargs[arg] = request.getfixturevalue(step.alias_params[arg])
+            else:
+                kwargs[arg] = request.getfixturevalue(arg)
         kw["step_func_args"] = kwargs
 
         request.config.hook.pytest_bdd_before_step_call(**kw)

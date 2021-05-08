@@ -13,5 +13,6 @@ GIVEN = "given"
 WHEN = "when"
 THEN = "then"
 TAG = "tag"
+CONTINUE = "continue"  # AND, BUG
 
 STEP_TYPES = (GIVEN, WHEN, THEN)

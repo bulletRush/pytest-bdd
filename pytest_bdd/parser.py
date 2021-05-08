@@ -158,10 +158,13 @@ def parse_feature(basedir, filename, encoding="utf-8"):
         keyword, parsed_line = parse_line(clean_line)
         if mode in [types.SCENARIO, types.SCENARIO_OUTLINE]:
             tags = get_tags(prev_line)
+            if scenario:
+                scenario.try_rock_current_examples()
             feature.scenarios[parsed_line] = scenario = Scenario(feature, parsed_line, line_number, tags=tags)
         elif mode == types.BACKGROUND:
             feature.background = Background(feature=feature, line_number=line_number)
         elif mode == types.EXAMPLES:
+            (scenario or feature).try_rock_current_examples()
             mode = types.EXAMPLES_HEADERS
             (scenario or feature).examples.line_number = line_number
         elif mode == types.EXAMPLES_VERTICAL:
@@ -199,7 +202,9 @@ def parse_feature(basedir, filename, encoding="utf-8"):
                 target = scenario
             target.add_step(step)
         prev_line = clean_line
-
+    if scenario:
+        scenario.try_rock_current_examples()
+    feature.try_rock_current_examples()
     feature.description = u"\n".join(description).strip()
     return feature
 
@@ -220,6 +225,13 @@ class Feature(object):
         self.scenarios = scenarios
         self.description = description
         self.background = background
+        self.examples_collections = []
+
+    def try_rock_current_examples(self):
+        if self.examples:
+            self.examples_collections.append(self.examples)
+        self.examples = Examples()
+        return self.examples
 
 
 class Scenario(object):
@@ -244,6 +256,7 @@ class Scenario(object):
         self.tags = tags or set()
         self.failed = False
         self.test_function = None
+        self.examples_collections = []
 
     def add_step(self, step):
         """Add step to the scenario.
@@ -274,17 +287,27 @@ class Scenario(object):
         """
         return frozenset(sum((list(step.params) for step in self.steps), []))
 
+    def try_rock_current_examples(self):
+        if self.examples:
+            self.examples_collections.append(self.examples)
+        self.examples = Examples()
+        return self.examples
+
     def get_example_params(self):
         """Get example parameter names."""
-        s = set(self.examples.example_params + self.feature.examples.example_params)
+        s = set()
+        for examples_collections in [self.examples_collections, self.feature.examples_collections]:
+            for examples in examples_collections:
+                s.update(examples.example_params)
         for step in self.steps:  # type: Step
             s.update(set(step.alias_params.values()))
         return s
 
     def get_params(self, builtin=False):
         """Get converted example params."""
-        for examples in [self.feature.examples, self.examples]:
-            yield examples.get_params(self.example_converters, builtin=builtin)
+        for examples_collections in [self.examples_collections, self.feature.examples_collections]:
+            for examples in examples_collections:
+                yield examples.get_params(self.example_converters, builtin=builtin)
 
     def validate(self):
         """Validate the scenario.

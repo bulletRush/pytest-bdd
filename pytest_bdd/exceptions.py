@@ -47,3 +47,14 @@ class FeatureError(Exception):
     def __str__(self):
         """String representation."""
         return self.message.format(*self.args)
+
+
+@six.python_2_unicode_compatible
+class ExampleError(Exception):
+    """Feature parse error."""
+
+    message = u"{0}.\nLine number: {1}.\nName: {2}"
+
+    def __str__(self):
+        """String representation."""
+        return self.message.format(*self.args)

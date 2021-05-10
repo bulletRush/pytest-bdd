@@ -341,9 +341,9 @@ class Scenario(object):
 class Step(object):
 
     """Step."""
-    CONSTANT_STEP_PARAM_RE = re.compile(r"(?<!\\)<(\w*):(.*?)>")  # constant step params regex
-    STEP_PARAM_ALIAS_RE = re.compile(r"(?<!\\)<(\w*)-(\w*)>")  # step params alias regex
-    GENERAL_STEP_PARAM_RE = re.compile(r"(?<!\\)<(\w*)>")  # general step params regex
+    CONSTANT_STEP_PARAM_RE = re.compile(r"(?<!\\)<(\w+)(\.[\w]?)?:(.*?)>")  # constant step params regex
+    STEP_PARAM_ALIAS_RE = re.compile(r"(?<!\\)<(\w+)-(\w+)>")  # step params alias regex
+    GENERAL_STEP_PARAM_RE = re.compile(r"(?<!\\)<(\w+)>")  # general step params regex
 
     def __init__(self, name, type, indent, line_number, keyword):
         """Step constructor.
@@ -370,11 +370,24 @@ class Step(object):
 
         self._init_step_args_convert()
 
+    def _convert_constant_value(self, convert, value):
+        if convert is None:
+            return value
+        convert = convert[1]
+        if convert == "i":
+            return int(value)
+        elif convert == "f":
+            return float(value)
+        raise exceptions.ExampleError(
+            "unknown constant step value convert(valid: [i, f]", self.line_number, self.name
+        )
+
     def _init_step_args_convert(self):
         for param in self.CONSTANT_STEP_PARAM_RE.finditer(self.name):
             key = param.group(1)
-            val = param.group(2)
-            self.constant_params[key] = val
+            convert = param.group(2)
+            val = param.group(3)
+            self.constant_params[key] = self._convert_constant_value(convert, val)
         for param in self.STEP_PARAM_ALIAS_RE.finditer(self.name):
             key = param.group(1)
             val = param.group(2)

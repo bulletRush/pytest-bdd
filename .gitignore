@@ -54,3 +54,4 @@ nosetests.xml
 /share
 /local
 .venv/
+.venv3/pyvenv.cfg

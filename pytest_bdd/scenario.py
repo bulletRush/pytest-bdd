@@ -24,7 +24,7 @@ except ImportError:
 from . import exceptions
 from .feature import force_unicode, get_feature, get_features
 from .steps import get_step_fixture_name, inject_fixture
-from .utils import CONFIG_STACK, get_args, get_caller_module_locals, get_caller_module_path
+from .utils import CONFIG_STACK, get_args, get_caller_module_locals, get_caller_module_path, get_args_default_values
 
 PYTHON_REPLACE_REGEX = re.compile(r"\W")
 ALPHA_REGEX = re.compile(r"^\d+_*")
@@ -105,6 +105,7 @@ def _execute_step_function(request, scenario, step, step_func):
     try:
         # Get the step argument values.
         args = get_args(step_func)
+        default_values = get_args_default_values(step_func)
         kwargs = {}
         for arg in args:
             if arg in step.constant_params:
@@ -122,7 +123,13 @@ def _execute_step_function(request, scenario, step, step_func):
                 # step params alias
                 kwargs[arg] = request.getfixturevalue(step.alias_params[arg])
             else:
-                kwargs[arg] = request.getfixturevalue(arg)
+                try:
+                    kwargs[arg] = request.getfixturevalue(arg)
+                except pytest_fixtures.FixtureLookupError as e:
+                    if arg in default_values:
+                        kwargs[arg] = default_values[arg]
+                    else:
+                        raise
         kw["step_func_args"] = kwargs
 
         request.config.hook.pytest_bdd_before_step_call(**kw)

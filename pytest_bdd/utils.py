@@ -20,6 +20,13 @@ if six.PY2:
         """
         return _getargspec(func).args
 
+    def get_args_default_values(func):
+        d = {}
+        spec = _getargspec(func)
+        if spec.defaults:
+            for idx, arg in enumerate(spec.args[-len(spec.defaults):]):
+                d[arg] = spec.defaults[idx]
+        return d
 
 else:
     from inspect import signature as _signature
@@ -34,6 +41,17 @@ else:
         """
         params = _signature(func).parameters.values()
         return [param.name for param in params if param.kind == param.POSITIONAL_OR_KEYWORD]
+
+    def get_args_default_values(func):
+        params = _signature(func).parameters.values()
+        d = {}
+        for param in params:
+            if param.kind != param.POSITIONAL_OR_KEYWORD:
+                continue
+            if param.default == param.empty:
+                continue
+            d[param.name] = param.default
+        return d
 
 
 def get_parametrize_markers_args(node):

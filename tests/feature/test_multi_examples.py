@@ -31,6 +31,10 @@ def test_multi_examples(testdir):
                   | v4  |
                   | k41 |
                   | k42 |
+                Examples:
+                  | v2  |
+                  | k23 |
+                  | k24 |  
             """
         ),
     )
@@ -51,5 +55,5 @@ def test_multi_examples(testdir):
             """
         )
     )
-    result = testdir.runpytest("-v")
+    result = testdir.runpytest("-v", "-s")
     result.assert_outcomes(passed=16, failed=0)

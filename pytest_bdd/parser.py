@@ -303,11 +303,23 @@ class Scenario(object):
             s.update(set(step.alias_params.values()))
         return s
 
+    def get_duplicate_example_params(self):
+        """Get example parameter names."""
+        scenario_params = set()
+        feature_params = set()
+        for examples in self.examples_collections:
+            scenario_params.update(examples.example_params)
+        for examples in self.feature.examples_collections:
+            feature_params.update(examples.example_params)
+        return scenario_params.intersection(feature_params)
+
     def get_params(self, builtin=False):
         """Get converted example params."""
-        for examples_collections in [self.examples_collections, self.feature.examples_collections]:
-            for examples in examples_collections:
-                yield examples.get_params(self.example_converters, builtin=builtin)
+        for examples in self.examples_collections:
+            yield examples.get_params(self.example_converters, builtin=builtin)
+        duplicate_params = self.get_duplicate_example_params()
+        for examples in self.feature.examples_collections:
+            yield examples.get_params(self.example_converters, builtin=builtin, ignore_params=duplicate_params)
 
     def validate(self):
         """Validate the scenario.
@@ -469,11 +481,13 @@ class Examples(object):
         self.example_params.append(param)
         self.vertical_examples.append(values)
 
-    def get_params(self, converters, builtin=False):
+    def get_params(self, converters, builtin=False, ignore_params=None):
         """Get scenario pytest parametrization table.
 
         :param converters: `dict` of converter functions to convert parameter values
         """
+        if ignore_params is None:
+            ignore_params = set()
         param_count = len(self.example_params)
         if self.vertical_examples and not self.examples:
             for value_index in range(len(self.vertical_examples[0])):
@@ -483,17 +497,28 @@ class Examples(object):
                 self.examples.append(example)
 
         if self.examples:
+            if ignore_params:
+                example_params = [p for p in self.example_params if p not in ignore_params]
+                if not example_params:
+                    return []
+            else:
+                example_params = self.example_params
+
             params = []
             for example in self.examples:
                 example = list(example)
                 for index, param in enumerate(self.example_params):
+                    if param in ignore_params:
+                        continue
                     raw_value = example[index]
                     if converters and param in converters:
                         value = converters[param](raw_value)
                         if not builtin or value.__class__.__module__ in {"__builtin__", "builtins"}:
                             example[index] = value
+                if ignore_params:
+                    example = [e for idx, e in enumerate(example) if self.example_params[idx] not in ignore_params]
                 params.append(example)
-            return [self.example_params, params]
+            return [example_params, params]
         else:
             return []
 

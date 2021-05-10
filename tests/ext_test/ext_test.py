@@ -16,22 +16,27 @@ CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 
 @when("in situation: <case>", target_fixture="context")
 def step_when_in_some_situation(case):
-    return {
+    default_d = {
+        "k3": "hello world 你好，世界",
+        "k4": "default",
+    }
+    d = {
         "1": {
             "k1": "v11",
             "k2": "v12",
-            "k3": "hello world 你好，世界",
         },
         "2": {
             "k1": "v21",
             "k2": "v22",
-            "k3": "hello world 你好，世界",
         },
-    }[str(case)]
+    }
+    for _, v in d.items():
+        v.update(default_d)
+    return d[str(case)]
 
 
 @then("return field: <field> should has value: <value>")
-def step_then_check_field(field, value, context):
+def step_then_check_field(field, context, value="default"):
     print("check field: {0} is value: {1}".format(field, value))
     assert field in context
     assert context[field] == value

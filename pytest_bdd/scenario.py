@@ -109,7 +109,15 @@ def _execute_step_function(request, scenario, step, step_func):
         for arg in args:
             if arg in step.constant_params:
                 # constant step params
-                kwargs[arg] = step.constant_params[arg]
+                v = step.constant_params[arg]
+                if v == '':
+                    continue
+                elif v == "''":
+                    kwargs[arg] = ''
+                elif v == "None":
+                    kwargs[arg] = None
+                else:
+                    kwargs[arg] = v
             elif arg in step.alias_params:
                 # step params alias
                 kwargs[arg] = request.getfixturevalue(step.alias_params[arg])

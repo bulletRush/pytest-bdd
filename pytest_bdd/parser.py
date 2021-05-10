@@ -339,11 +339,14 @@ class Scenario(object):
 
 @six.python_2_unicode_compatible
 class Step(object):
+    class _SkipMark(object):
+        pass
 
     """Step."""
-    CONSTANT_STEP_PARAM_RE = re.compile(r"(?<!\\)<(\w+)(\.[\w]?)?:(.*?)>")  # constant step params regex
+    CONSTANT_STEP_PARAM_RE = re.compile(r"(?<!\\)<(\w+)(\.([\w]?))?:(.*?)>")  # constant step params regex
     STEP_PARAM_ALIAS_RE = re.compile(r"(?<!\\)<(\w+)-(\w+)>")  # step params alias regex
     GENERAL_STEP_PARAM_RE = re.compile(r"(?<!\\)<(\w+)>")  # general step params regex
+    SKIP_MARK = _SkipMark()
 
     def __init__(self, name, type, indent, line_number, keyword):
         """Step constructor.
@@ -373,20 +376,27 @@ class Step(object):
     def _convert_constant_value(self, convert, value):
         if convert is None:
             return value
-        convert = convert[1]
-        if convert == "i":
-            return int(value)
-        elif convert == "f":
-            return float(value)
+        converts = {
+            "i": int,
+            "f": float,
+            "I": int,
+            "d": float,
+            "N": lambda x: None,  # use None value
+            "E": lambda x: "",  # use empty string
+            "S": lambda x: self.SKIP_MARK,  # skip, use step default value
+        }
+        if convert in converts:
+            return converts[convert](value)
         raise exceptions.ExampleError(
-            "unknown constant step value convert(valid: [i, f]", self.line_number, self.name
+            "unknown constant step value convert(valid: [{0}])".format(",".join(converts.keys())),
+            self.line_number, self.name, convert
         )
 
     def _init_step_args_convert(self):
         for param in self.CONSTANT_STEP_PARAM_RE.finditer(self.name):
             key = param.group(1)
-            convert = param.group(2)
-            val = param.group(3)
+            convert = param.group(3)
+            val = param.group(4)
             self.constant_params[key] = self._convert_constant_value(convert, val)
         for param in self.STEP_PARAM_ALIAS_RE.finditer(self.name):
             key = param.group(1)

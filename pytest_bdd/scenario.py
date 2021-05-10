@@ -111,14 +111,9 @@ def _execute_step_function(request, scenario, step, step_func):
             if arg in step.constant_params:
                 # constant step params
                 v = step.constant_params[arg]
-                if v == '':
+                if v == step.SKIP_MARK:
                     continue
-                elif v == "''":
-                    kwargs[arg] = ''
-                elif v == "None":
-                    kwargs[arg] = None
-                else:
-                    kwargs[arg] = v
+                kwargs[arg] = v
             elif arg in step.alias_params:
                 # step params alias
                 kwargs[arg] = request.getfixturevalue(step.alias_params[arg])

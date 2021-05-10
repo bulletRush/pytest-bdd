@@ -53,7 +53,7 @@ class FeatureError(Exception):
 class ExampleError(Exception):
     """Feature parse error."""
 
-    message = u"{0}.\nLine number: {1}.\nName: {2}"
+    message = u"{0}.\nLine number: {1}.\nName: {2}\nconvert: {3}"
 
     def __str__(self):
         """String representation."""

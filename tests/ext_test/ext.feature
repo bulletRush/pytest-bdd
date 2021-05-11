@@ -13,6 +13,7 @@ Feature: test pytest-bdd step extension
     Then return field: <field:k8> should has value: <value.E:>  # empty constant value convert
     Then return field: <field:k9> should has value: <value.I:10>  # integer constant value convert
     Then return field: <field:k10> should has value: <value.d:3.14>  # float constant value convert
+    Then return field: <field:k11> should has value: <value:>  # default value convert
     Examples:
       | case | v1  | v2  |
       | 1    | v11 | v12 |

@@ -375,6 +375,8 @@ class Step(object):
 
     def _convert_constant_value(self, convert, value):
         if convert is None:
+            if value == "":
+                return self.SKIP_MARK
             return value
         converts = {
             "i": int,

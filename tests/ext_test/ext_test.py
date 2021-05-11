@@ -24,6 +24,7 @@ def step_when_in_some_situation(case):
         "k8": '',
         "k9": 10,
         "k10": 3.14,
+        "k11": "default",
     }
     d = {
         "1": {

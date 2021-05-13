@@ -37,7 +37,7 @@ def given_beautiful_article(article):
 
 from __future__ import absolute_import
 import inspect
-
+import sys
 import pytest
 
 try:
@@ -146,7 +146,27 @@ def _step_decorator(step_type, step_name, converters=None, target_fixture=None):
     return decorator
 
 
-def inject_fixture(request, arg, value):
+def pytest_fixture_setup(fixturedef, request):
+    """ Execution of fixture setup. """
+    kwargs = {}
+    for argname in fixturedef.argnames:
+        fixdef = request._get_active_fixturedef(argname)
+        result, arg_cache_key, exc = fixdef.cached_result
+        request._check_scope(argname, request.scope, fixdef.scope)
+        kwargs[argname] = result
+
+    fixturefunc = pytest_fixtures.resolve_fixture_function(fixturedef, request)
+    my_cache_key = 0
+    try:
+        result = pytest_fixtures.call_fixture_func(fixturefunc, request, kwargs)
+    except pytest_fixtures.TEST_OUTCOME:
+        fixturedef.cached_result = (None, my_cache_key, sys.exc_info())
+        raise
+    fixturedef.cached_result = (result, my_cache_key, None)
+    return result
+
+
+def inject_fixture(request, arg, value, inject_func=False):
     """Inject fixture into pytest fixture request.
 
     :param request: pytest fixture request
@@ -157,16 +177,22 @@ def inject_fixture(request, arg, value):
         "fixturemanager": request._fixturemanager,
         "baseid": None,
         "argname": arg,
-        "func": lambda: value,
         "scope": "function",
         "params": None,
     }
+    if inject_func:
+        fd_kwargs["func"] = value
+    else:
+        fd_kwargs["func"] = lambda: value
 
     if "yieldctx" in get_args(pytest_fixtures.FixtureDef.__init__):
         fd_kwargs["yieldctx"] = False
 
     fd = pytest_fixtures.FixtureDef(**fd_kwargs)
-    fd.cached_result = (value, 0, None)
+    if inject_func:
+        pytest_fixture_setup(fd, request)
+    else:
+        fd.cached_result = (value, 0, None)
 
     old_fd = request._fixture_defs.get(arg)
     add_fixturename = arg not in request.fixturenames

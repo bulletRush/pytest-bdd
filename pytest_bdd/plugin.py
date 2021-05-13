@@ -35,6 +35,7 @@ def pytest_addoption(parser):
 
 def add_bdd_ini(parser):
     parser.addini("bdd_features_base_dir", "Base features directory.")
+    parser.addini("bdd_steps_def_dir", "Base steps definition directory.")
 
 
 @pytest.mark.trylast

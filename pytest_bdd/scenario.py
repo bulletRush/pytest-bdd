@@ -24,11 +24,11 @@ except ImportError:
 from . import exceptions
 from .feature import force_unicode, get_feature, get_features
 from .steps import get_step_fixture_name, inject_fixture
-from .utils import CONFIG_STACK, get_args, get_caller_module_locals, get_caller_module_path, get_args_default_values
+from .utils import CONFIG_STACK, get_args, get_caller_module_locals, get_caller_module_path, get_args_default_values, iter_modules
 
 PYTHON_REPLACE_REGEX = re.compile(r"\W")
 ALPHA_REGEX = re.compile(r"^\d+_*")
-
+GENERAL_STEP_DEFS = None
 
 # We have to keep track of the invocation of @scenario() so that we can reorder test item accordingly.
 # In python 3.6+ this is no longer necessary, as the order is automatically retained.
@@ -58,6 +58,38 @@ def find_argumented_step_fixture_name(name, type_, fixturemanager, request=None)
                 return parser_name
 
 
+def get_general_step_defs():
+    global GENERAL_STEP_DEFS
+    if GENERAL_STEP_DEFS is not None:
+        return GENERAL_STEP_DEFS
+
+    path = get_steps_def_dir()
+    GENERAL_STEP_DEFS = {}
+    if not os.path.exists(path):
+        return GENERAL_STEP_DEFS
+    for module_path, module in iter_modules(path):  # type: str,module
+        for k, func in module.__dict__.items():
+            if not k.startswith("pytestbdd_"):
+                continue
+            if k in GENERAL_STEP_DEFS:
+                raise Exception("duplicated step defs: {0}".format(k))
+            GENERAL_STEP_DEFS[k] = func
+    return GENERAL_STEP_DEFS
+
+
+def _find_general_step_function(request, step, scenario, encoding):
+    general_step_defs = get_general_step_defs()
+    if not general_step_defs:
+        raise pytest_fixtures.FixtureLookupError(step.name, request)
+    step_name = get_step_fixture_name(step.name, step.type, encoding)
+    lazy_step_func = general_step_defs.get(step_name)
+    if lazy_step_func is None:
+        raise pytest_fixtures.FixtureLookupError(step.name, request)
+    inject_fixture(
+        request, step_name, lazy_step_func.__pytest_wrapped__.obj, inject_func=True)
+    return request.getfixturevalue(get_step_fixture_name(step.name, step.type, encoding))
+
+
 def _find_step_function(request, step, scenario, encoding):
     """Match the step defined by the regular expression pattern.
 
@@ -78,7 +110,7 @@ def _find_step_function(request, step, scenario, encoding):
             name = find_argumented_step_fixture_name(name, step.type, request._fixturemanager, request)
             if name:
                 return request.getfixturevalue(name)
-            raise
+            return _find_general_step_function(request, step, scenario, encoding)
         except pytest_fixtures.FixtureLookupError:
             raise exceptions.StepDefinitionNotFoundError(
                 u"""Step definition is not found: {step}."""
@@ -256,6 +288,15 @@ def scenario(feature_name, scenario_name, encoding="utf-8", example_converters=N
 def get_features_base_dir(caller_module_path):
     default_base_dir = os.path.dirname(caller_module_path)
     return get_from_ini("bdd_features_base_dir", default_base_dir)
+
+
+def get_steps_def_dir():
+    config = CONFIG_STACK[-1]
+    default_base_dir = os.path.join(os.getcwd(), "steps")
+    path = os.path.normpath(get_from_ini("bdd_steps_def_dir", default_base_dir))
+    if os.path.isabs(path):
+        return path
+    return str(config.rootdir.join(path))
 
 
 def get_from_ini(key, default):

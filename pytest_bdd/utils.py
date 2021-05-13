@@ -1,5 +1,7 @@
 """Various utility functions."""
-
+import os
+import importlib
+import sys
 from sys import _getframe
 from inspect import getframeinfo
 
@@ -80,3 +82,27 @@ def get_caller_module_path(depth=2):
     """
     frame = _getframe(depth)
     return getframeinfo(frame, context=0).filename
+
+
+def iter_modules(path):
+    r_path = os.path.normpath(os.path.abspath(path))
+    while r_path not in sys.path:
+        p_path = os.path.normpath(os.path.join(r_path, os.pardir))
+        if p_path == r_path:
+            break
+        r_path = p_path
+
+    if r_path not in sys.path:
+        sys.path.append(r_path)
+
+    for root, sub_dir_l, file_l in os.walk(path):
+        for f in file_l:
+            if not f.endswith(".py") or f.startswith("__") or f.startswith(
+                    "_"):
+                continue
+            interface_name = f[:-3]
+            module_path = os.path.relpath(root, r_path).split("/")
+            module_path.append(interface_name)
+            module_path = ".".join(module_path)
+            module = importlib.import_module(module_path)
+            yield module_path, module

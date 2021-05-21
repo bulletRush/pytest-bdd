@@ -3,8 +3,8 @@ Feature: test pytest-bdd step extension
 
   Scenario Outline: variant step test
     When in situation: <case>
-    Then return field: <field:k1> should has value: <value-v1>
-    Then return field: <field:k2> should has value: <value-v2>
+    Then return field: <field:k1> should has value: <value.A:v1>
+    Then return field: <field:k2> should has value: <value.A:v2>
     Then return field: <field:k3> should has value: <value:hello world 你好，世界>
     Then return field: <field:k4> should has value: <value.S:>  # default value convert
     Then return field: <field:k5> should has value: <value.i:10>  # integer constant value convert

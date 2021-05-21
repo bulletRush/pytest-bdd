@@ -346,8 +346,7 @@ class Step(object):
         pass
 
     """Step."""
-    CONSTANT_STEP_PARAM_RE = re.compile(r"(?<!\\)<(\w+)(\.([\w]?))?:(.*?)>")  # constant step params regex
-    STEP_PARAM_ALIAS_RE = re.compile(r"(?<!\\)<(\w+)-(\w+)>")  # step params alias regex
+    VARIANT_STEP_PARAM_RE = re.compile(r"(?<!\\)<(\w+)(\.([\w]?))?:(.*?)>")  # variant step params regex
     GENERAL_STEP_PARAM_RE = re.compile(r"(?<!\\)<(\w+)>")  # general step params regex
     SKIP_MARK = _SkipMark()
 
@@ -376,11 +375,13 @@ class Step(object):
 
         self._init_step_args_convert()
 
-    def _convert_constant_value(self, convert, value):
+    def _convert_value(self, key, convert, value):
         if convert is None:
             if value == "":
-                return self.SKIP_MARK
-            return value
+                self.constant_params[key] = self.SKIP_MARK
+                return
+            self.constant_params[key] = value
+            return
         converts = {
             "i": int,
             "f": float,
@@ -389,26 +390,27 @@ class Step(object):
             "N": lambda x: None,  # use None value
             "E": lambda x: "",  # use empty string
             "S": lambda x: self.SKIP_MARK,  # skip, use step default value
+            "A": None,  # alias to another args
         }
         if convert in converts:
-            return converts[convert](value)
+            if convert == "A":
+                self.alias_params[key] = value
+            else:
+                self.constant_params[key] = converts[convert](value)
+            return
         raise exceptions.ExampleError(
             "unknown constant step value convert(valid: [{0}])".format(",".join(converts.keys())),
             self.line_number, self.name, convert
         )
 
     def _init_step_args_convert(self):
-        for param in self.CONSTANT_STEP_PARAM_RE.finditer(self.name):
+        for param in self.VARIANT_STEP_PARAM_RE.finditer(self.name):
             key = param.group(1)
             convert = param.group(3)
             val = param.group(4)
-            self.constant_params[key] = self._convert_constant_value(convert, val)
-        for param in self.STEP_PARAM_ALIAS_RE.finditer(self.name):
-            key = param.group(1)
-            val = param.group(2)
-            self.alias_params[key] = val
+            self._convert_value(key, convert, val)
         self.raw_name = self.name
-        self.name = self.STEP_PARAM_ALIAS_RE.sub(r"<\1>", self.CONSTANT_STEP_PARAM_RE.sub(r"<\1>", self.name))
+        self.name = self.VARIANT_STEP_PARAM_RE.sub(r"<\1>", self.name)
 
     def add_line(self, line):
         """Add line to the multiple step.

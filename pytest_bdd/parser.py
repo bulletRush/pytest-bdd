@@ -160,6 +160,9 @@ def parse_feature(basedir, filename, encoding="utf-8"):
             tags = get_tags(prev_line)
             if scenario:
                 scenario.try_rock_current_examples()
+                if len(scenario._steps) == 0:
+                    raise exceptions.ScenarioValidationError(
+                        "scenario not private step found: {0}".format(scenario.name))
             feature.scenarios[parsed_line] = scenario = Scenario(feature, parsed_line, line_number, tags=tags)
         elif mode == types.BACKGROUND:
             feature.background = Background(feature=feature, line_number=line_number)

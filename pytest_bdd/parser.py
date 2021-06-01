@@ -375,6 +375,22 @@ class Step(object):
 
         self._init_step_args_convert()
 
+    @staticmethod
+    def _convert_bool(val):
+        if isinstance(val, six.string_types):
+            val = val.lower()
+            if val == "true":
+                return True
+            elif val == "false":
+                return False
+
+            try:
+                return bool(int(val))
+            except ValueError:
+                pass
+            return bool(val)
+        return bool(val)
+
     def _convert_value(self, key, convert, value):
         if convert is None:
             if value == "":
@@ -387,6 +403,7 @@ class Step(object):
             "f": float,
             "I": int,
             "d": float,
+            "b": self._convert_bool,
             "N": lambda x: None,  # use None value
             "E": lambda x: "",  # use empty string
             "S": lambda x: self.SKIP_MARK,  # skip, use step default value

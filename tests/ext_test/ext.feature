@@ -14,6 +14,14 @@ Feature: test pytest-bdd step extension
     Then return field: <field:k9> should has value: <value.I:10>  # integer constant value convert
     Then return field: <field:k10> should has value: <value.d:3.14>  # float constant value convert
     Then return field: <field:k11> should has value: <value:>  # default value convert
+    Then return field: <field:k12> should has value: <value.b:True>  # bool value convert
+    Then return field: <field:k13> should has value: <value.b:true>  # bool value convert
+    Then return field: <field:k14> should has value: <value.b:False>  # bool value convert
+    Then return field: <field:k15> should has value: <value.b:false>  # bool value convert
+    Then return field: <field:k16> should has value: <value.b:>  # bool value convert
+    Then return field: <field:k17> should has value: <value.b:0>  # bool value convert
+    Then return field: <field:k18> should has value: <value.b:1>  # bool value convert
+
     Examples:
       | case | v1  | v2  |
       | 1    | v11 | v12 |

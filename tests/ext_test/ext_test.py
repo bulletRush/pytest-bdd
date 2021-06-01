@@ -4,6 +4,7 @@ import os
 import sys
 
 import six
+
 from pytest_bdd import scenario, then, when
 
 if six.PY2:
@@ -25,6 +26,13 @@ def step_when_in_some_situation(case):
         "k9": 10,
         "k10": 3.14,
         "k11": "default",
+        "k12": True,
+        "k13": True,
+        "k14": False,
+        "k15": False,
+        "k16": False,
+        "k17": False,
+        "k18": True,
     }
     d = {
         "1": {
@@ -43,7 +51,9 @@ def step_when_in_some_situation(case):
 
 @then("return field: <field> should has value: <value>")
 def step_then_check_field(field, context, value="default"):
-    print("check field: {0} is value: {1}({2})".format(field, value, type(value).__name__))
+    print("check field: {0} is value: {1}({2}), except: {3}".format(
+        field, value,
+        type(value).__name__, context[field]))
     assert field in context
     assert context[field] == value
 

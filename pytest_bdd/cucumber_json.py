@@ -13,6 +13,7 @@ from .feature import force_unicode
 def add_options(parser):
     """Add pytest-bdd options."""
     group = parser.getgroup("bdd", "Cucumber JSON")
+    help_json = "create cucumber json style report file at given path."
     group.addoption(
         "--cucumberjson",
         "--cucumber-json",
@@ -20,24 +21,31 @@ def add_options(parser):
         dest="cucumber_json_path",
         metavar="path",
         default=None,
-        help="create cucumber json style report file at given path.",
+        help=help_json,
     )
 
+    help_expanded = "expand scenario outlines into scenarios and fill in the step names"
     group._addoption(
         "--cucumberjson-expanded",
         "--cucumber-json-expanded",
         action="store_true",
         dest="expand",
         default=False,
-        help="expand scenario outlines into scenarios and fill in the step names",
+        help=help_expanded,
     )
-
+    parser.addini("cucumber_json_path", help=help_json)
+    parser.addini("cucumber_json_expanded", help=help_expanded, type="bool", default=False)
 
 def configure(config):
     cucumber_json_path = config.option.cucumber_json_path
+    if not cucumber_json_path:
+        cucumber_json_path = config.getini("cucumber_json_path")
+    expand = config.option.expand
+    if not expand:
+        expand = config.getini("cucumber_json_expanded")
     # prevent opening json log on worker nodes (xdist)
     if cucumber_json_path and not hasattr(config, "workerinput"):
-        config._bddcucumberjson = LogBDDCucumberJSON(cucumber_json_path, expand=config.option.expand)
+        config._bddcucumberjson = LogBDDCucumberJSON(cucumber_json_path, expand=expand)
         config.pluginmanager.register(config._bddcucumberjson)
 
 

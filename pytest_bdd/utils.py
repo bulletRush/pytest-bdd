@@ -4,7 +4,7 @@ import importlib
 import sys
 from sys import _getframe
 from inspect import getframeinfo
-
+import errno
 import six
 
 CONFIG_STACK = []
@@ -106,3 +106,12 @@ def iter_modules(path):
             module_path = ".".join(module_path)
             module = importlib.import_module(module_path)
             yield module_path, module
+
+
+def safe_create_dir(dir_name):
+    if not os.path.exists(dir_name):
+        try:
+            os.makedirs(dir_name)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise

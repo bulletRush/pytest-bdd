@@ -8,6 +8,7 @@ import sys
 import time
 
 from .feature import force_unicode
+from .utils import safe_create_dir
 
 
 def add_options(parser):
@@ -40,6 +41,8 @@ def configure(config):
     cucumber_json_path = config.option.cucumber_json_path
     if not cucumber_json_path:
         cucumber_json_path = config.getini("cucumber_json_path")
+    if cucumber_json_path:
+        cucumber_json_path = str(config.rootdir.join(cucumber_json_path))
     expand = config.option.expand
     if not expand:
         expand = config.getini("cucumber_json_expanded")
@@ -183,6 +186,10 @@ class LogBDDCucumberJSON(object):
             logfile_open = codecs.open
         else:
             logfile_open = open
+
+        dir_name = os.path.dirname(self.logfile)
+        safe_create_dir(dir_name)
+
         with logfile_open(self.logfile, "w", encoding="utf-8") as logfile:
             logfile.write(json.dumps(list(self.features.values())))
 

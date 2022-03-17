@@ -26,3 +26,8 @@ Feature: test pytest-bdd step extension
       | case | v1  | v2  |
       | 1    | v11 | v12 |
       | 2    | v21 | v22 |
+
+  Scenario: default step value
+    When in situation: 1
+    Then return field: <field:k1> should has value: <value:v11>
+    Then return field: <field:k2> should has value: <value:v12>

@@ -14,6 +14,7 @@ if six.PY2:
 CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
+@when("in situation: 1", target_fixture="context", case=1)
 @when("in situation: <case>", target_fixture="context")
 def step_when_in_some_situation(case):
     default_d = {
@@ -64,3 +65,11 @@ def step_then_check_field(field, context, value="default"):
           example_converters=dict(case=int))
 def test_check_new_step():
     pass
+
+
+@scenario('ext.feature',
+          'default step value',
+          features_base_dir=CUR_DIR)
+def test_default_step_value():
+    pass
+

@@ -139,6 +139,13 @@ def _execute_step_function(request, scenario, step, step_func):
         args = get_args(step_func)
         default_values = get_args_default_values(step_func)
         kwargs = {}
+
+        extra_args_map = getattr(step_func, "extra_args_map", {})
+        if extra_args_map:
+            extra_args = extra_args_map.get(get_step_fixture_name(step.name, step.type), {})
+        else:
+            extra_args = {}
+
         for arg in args:
             if arg in step.constant_params:
                 # constant step params
@@ -149,6 +156,8 @@ def _execute_step_function(request, scenario, step, step_func):
             elif arg in step.alias_params:
                 # step params alias
                 kwargs[arg] = request.getfixturevalue(step.alias_params[arg])
+            elif arg in extra_args:
+                kwargs[arg] = extra_args[arg]
             else:
                 try:
                     kwargs[arg] = request.getfixturevalue(arg)

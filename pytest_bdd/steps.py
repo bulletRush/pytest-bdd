@@ -65,20 +65,20 @@ def get_step_fixture_name(name, type_, encoding=None):
     )
 
 
-def given(name, converters=None, target_fixture=None):
+def given(name, converters=None, target_fixture=None, **kwargs):
     """Given step decorator.
 
     :param name: Step name or a parser object.
     :param converters: Optional `dict` of the argument or parameter converters in form
                        {<param_name>: <converter function>}.
     :param target_fixture: Target fixture name to replace by steps definition function
-
+    :param kwargs: default value
     :return: Decorator function for the step.
     """
-    return _step_decorator(GIVEN, name, converters=converters, target_fixture=target_fixture)
+    return _step_decorator(GIVEN, name, converters=converters, target_fixture=target_fixture, extra_args=kwargs)
 
 
-def when(name, converters=None, target_fixture=None):
+def when(name, converters=None, target_fixture=None, **kwargs):
     """When step decorator.
 
     :param name: Step name or a parser object.
@@ -88,10 +88,10 @@ def when(name, converters=None, target_fixture=None):
 
     :return: Decorator function for the step.
     """
-    return _step_decorator(WHEN, name, converters=converters, target_fixture=target_fixture)
+    return _step_decorator(WHEN, name, converters=converters, target_fixture=target_fixture, extra_args=kwargs)
 
 
-def then(name, converters=None):
+def then(name, converters=None, **kwargs):
     """Then step decorator.
 
     :param name: Step name or a parser object.
@@ -100,17 +100,17 @@ def then(name, converters=None):
 
     :return: Decorator function for the step.
     """
-    return _step_decorator(THEN, name, converters=converters)
+    return _step_decorator(THEN, name, converters=converters, extra_args=kwargs)
 
 
-def _step_decorator(step_type, step_name, converters=None, target_fixture=None):
+def _step_decorator(step_type, step_name, converters=None, target_fixture=None, extra_args=None):
     """Step decorator for the type and the name.
 
     :param str step_type: Step type (GIVEN, WHEN or THEN).
     :param str step_name: Step name as in the feature file.
     :param dict converters: Optional step arguments converters mapping
     :param target_fixture: Optional fixture name to replace by step definition
-
+    :param extra_args: extra args
     :return: Decorator function for the step.
     """
 
@@ -136,8 +136,15 @@ def _step_decorator(step_type, step_name, converters=None, target_fixture=None):
 
         step_func.target_fixture = lazy_step_func.target_fixture = target_fixture
 
-        lazy_step_func = pytest.fixture()(lazy_step_func)
         fixture_step_name = get_step_fixture_name(parsed_step_name, step_type)
+
+        if extra_args:
+            extra_args_map = getattr(step_func, "extra_args_map", {})
+            if not extra_args_map:
+                step_func.extra_args_map = {}
+            step_func.extra_args_map[fixture_step_name] = extra_args
+
+        lazy_step_func = pytest.fixture()(lazy_step_func)
 
         caller_locals = get_caller_module_locals()
         caller_locals[fixture_step_name] = lazy_step_func

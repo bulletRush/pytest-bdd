@@ -331,7 +331,9 @@ class Scenario(object):
         """
         params = self.params
         example_params = self.get_example_params()
-        if params and example_params and params != example_params:
+        # if params and example_params and params != example_params:
+        # because we may use global example in fixture directly
+        if params and example_params and not params.issubset(example_params):
             raise exceptions.ScenarioExamplesNotValidError(
                 """Scenario "{0}" in the feature "{1}" has not valid examples. """
                 """Set of step parameters {2} should match set of example values {3}.""".format(

@@ -410,6 +410,9 @@ class Step(object):
             "E": lambda x: "",  # use empty string
             "S": lambda x: self.SKIP_MARK,  # skip, use step default value
             "A": None,  # alias to another args
+            "l": lambda x: [a.strip() for a in x.split(",")],  # list
+            "li": lambda x: [int(a) for a in x.split(",")],  # int list
+            "lf": lambda x: [float(a) for a in x.split(",")],  # float list
         }
         if convert in converts:
             if convert == "A":

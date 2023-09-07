@@ -116,6 +116,7 @@ def _step_decorator(step_type, step_name, converters=None, target_fixture=None, 
     """
 
     def decorator(func):
+        func_name = getattr(func, "origin_name", getattr(func, "__name__"))
         step_func = func
         parser_instance = get_parser(step_name)
         parsed_step_name = parser_instance.name
@@ -136,6 +137,7 @@ def _step_decorator(step_type, step_name, converters=None, target_fixture=None, 
             step_func.converters = lazy_step_func.converters = converters
 
         step_func.target_fixture = lazy_step_func.target_fixture = target_fixture
+        step_func.origin_name = lazy_step_func.origin_name = func_name
 
         fixture_step_name = get_step_fixture_name(parsed_step_name, step_type)
 

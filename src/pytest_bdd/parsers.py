@@ -10,6 +10,8 @@ import parse as base_parse
 from _pytest.fixtures import FixtureRequest
 from parse_type import cfparse as base_cfparse
 
+from . import exceptions
+
 if TYPE_CHECKING:
     from .parser import Step
 
@@ -106,61 +108,78 @@ class string(StepParser):
         return self.name == step.name
 
 
+class _SkipMark:
+    pass
+
+
 class AngleBracketsParser(StepParser):
     VARIANT_STEP_PARAM_RE = base_re.compile(r"(?<!\\)<(\w+)(\.([\w]?))?:(.*?)>")  # variant step params regex
     GENERAL_STEP_PARAM_RE = base_re.compile(r"(?<!\\)<(\w+)>")  # general step params regex
+    SKIP_MARK = _SkipMark()
 
-    def _convert_value(self, key: str, convert: str, val: str):
-        # TODO: 待适配
-        # if convert is None:
-        #     if value == "":
-        #         self.constant_params[key] = self.SKIP_MARK
-        #         return
-        #     self.constant_params[key] = value
-        #     return
-        # converts = {
-        #     "i": int,
-        #     "f": float,
-        #     "I": int,
-        #     "d": float,
-        #     "b": self._convert_bool,
-        #     "N": lambda x: None,  # use None value
-        #     "E": lambda x: "",  # use empty string
-        #     "S": lambda x: self.SKIP_MARK,  # skip, use step default value
-        #     "A": None,  # alias to another args
-        #     "l": lambda x: [a.strip() for a in x.split(",")],  # list
-        #     "li": lambda x: [int(a) for a in x.split(",")],  # int list
-        #     "lf": lambda x: [float(a) for a in x.split(",")],  # float list
-        # }
-        # if convert in converts:
-        #     if convert == "A":
-        #         self.alias_params[key] = value
-        #     else:
-        #         self.constant_params[key] = converts[convert](value)
-        #     return
-        # raise exceptions.StepError(
-        #     "unknown constant step value convert(valid: [{0}])".format(",".join(converts.keys())),
-        #     self.line_number, self.name, convert
-        # )
-        return val
+    @staticmethod
+    def _convert_bool(val):
+        if isinstance(val, str):
+            val = val.lower()
+            if val == "true":
+                return True
+            elif val == "false":
+                return False
+
+            try:
+                return bool(int(val))
+            except ValueError:
+                pass
+            return bool(val)
+        return bool(val)
+
+    def _convert_value(self, key: str, convert: str, value: str, step: Step, request: FixtureRequest):
+        if convert is None:
+            return value
+
+        converts = {
+            "i": int,
+            "f": float,
+            "I": int,
+            "d": float,
+            "b": self._convert_bool,
+            "N": lambda x: None,  # use None value
+            "E": lambda x: "",  # use empty string
+            "S": lambda x: self.SKIP_MARK,  # skip, use step default value
+            "A": lambda x: self._get_fixture_value(x, request),
+            "l": lambda x: [a.strip() for a in x.split(",")],  # list
+            "li": lambda x: [int(a) for a in x.split(",")],  # int list
+            "lf": lambda x: [float(a) for a in x.split(",")],  # float list
+        }
+        if convert in converts:
+            return converts[convert](value)
+
+        valid_converts = ",".join(converts.keys())
+        raise exceptions.StepError(
+            f"unknown step value convert({convert}) in step({step.origin}), valid: {valid_converts})"
+        )
+
+    def _get_fixture_value(self, key: str, request: FixtureRequest):
+        pytest_bdd_example = request.getfixturevalue("_pytest_bdd_example")
+        if key in pytest_bdd_example:
+            return pytest_bdd_example[key]
+        else:
+            return request.getfixturevalue(key)
 
     def parse_arguments(self, step: Step, request: FixtureRequest) -> dict[str, str]:
-        # g = cast(dict[str, Any], self.VARIANT_STEP_PARAM_RE.parse(name).named)
-        # return g
-        pytest_bdd_example = request.getfixturevalue("_pytest_bdd_example")
         d = {}
 
         for key in self.GENERAL_STEP_PARAM_RE.findall(step.origin):
-            if key in pytest_bdd_example:
-                d[key] = pytest_bdd_example[key]
-            else:
-                d[key] = request.getfixturevalue(key)
+            val = self._get_fixture_value(key, request)
+            d[key] = val
 
         for param in self.VARIANT_STEP_PARAM_RE.finditer(step.origin):
             key = param.group(1)
             convert = param.group(3)
             val = param.group(4)
-            val = self._convert_value(key, convert, val)
+            val = self._convert_value(key, convert, val, step=step, request=request)
+            if val == self.SKIP_MARK:
+                continue
             d[key] = val
         return d
 

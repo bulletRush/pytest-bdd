@@ -380,6 +380,19 @@ class FeatureParser:
         self.rel_filename = os.path.join(os.path.basename(basedir), filename)
         self.encoding = encoding
 
+    def _remove_step_comment(self, text: str) -> str:
+        start = 0
+        while True:
+            idx = text.find("#", start)
+            if idx == -1:
+                return text
+            if idx == 0:
+                return ""
+            if text[idx - 1] == "\\":
+                start = idx + 1
+            else:
+                return text[:idx]
+
     def parse_steps(self, steps_data: list[GherkinStep]) -> list[Step]:
         """Parse a list of step data into Step objects.
 
@@ -406,9 +419,10 @@ class FeatureParser:
         current_type = STEP_TYPE_BY_PARSER_KEYWORD[first_step.keyword_type]
         for step in steps_data:
             current_type = STEP_TYPE_BY_PARSER_KEYWORD.get(step.keyword_type, current_type)
+
             steps.append(
                 Step(
-                    name=step.text,
+                    name=self._remove_step_comment(step.text).strip(),
                     type=current_type,
                     indent=step.location.column - 1,
                     line_number=step.location.line,

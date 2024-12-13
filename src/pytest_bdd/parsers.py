@@ -135,6 +135,8 @@ class AngleBracketsParser(StepParser):
 
     def _convert_value(self, key: str, convert: str, value: str, step: Step, request: FixtureRequest):
         if convert is None:
+            if value == "":
+                return self.SKIP_MARK
             return value
 
         converts = {

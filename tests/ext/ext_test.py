@@ -51,7 +51,7 @@ def step_when_in_some_situation(case):
 
 
 @then("return field: <field> should has value: <value>")
-def step_then_check_field(field, value, context):
+def step_then_check_field(field, context, value="default"):
     print(f"check field: {field} is value: {value}")
     assert field in context
     assert context[field] == value

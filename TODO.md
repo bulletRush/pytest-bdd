@@ -1,17 +1,17 @@
-- [x] 多个Example之间使用点积的方式生成参数
-- [ ] 支持全局Example
+- [*] 多个Example之间使用点积的方式生成参数
 - [*] step定义中支持使用`<key>`的方式匹配参数
-- [ ] 支持在`Feature`文件中直接指定某个key的值
-- [ ] 支持在`Feature`文件中设置某个`key`的映射值
-- [ ] 禁止使用`And`/`After`
-- [ ] feature文件中支持默认值和None值
+- [*] 支持在`Feature`文件中直接指定某个key的值
+- [*] 支持在`Feature`文件中设置某个`key`的映射值
+- [*] feature文件中支持默认值和None值
 - [ ] 支持覆盖全局Example中的部分值
-- [ ] 支持在`Feature`文件中设置value的转换器
+- [*] 支持在`Feature`文件中设置value的转换器
   - 我们有动态对比DB字段值和请求包参数值的需求，所以这个特性是必须的
 - [ ] step函数支持默认值
 - [ ] 支持通过配置设置默认的全局step加载目录
-- [ ] 支持读取存储`cucumber`json
+- [ ] ~~支持读取存储`cucumber`json~~
 - [ ] step定义支持指定部分参数值
-- [ ] `then`step支持返回`target_fixture`
-- [ ] 支持列表格式
+- [*] `then`step支持返回`target_fixture`
+- [*] 支持列表格式
 - [ ] 支持获取原始函数名称
+- [ ] 支持全局Example
+- [ ] 禁止使用`And`/`After`

@@ -70,6 +70,7 @@ class StepFunctionContext:
     parser: StepParser
     converters: dict[str, Callable[[str], object]] = field(default_factory=dict)
     target_fixture: str | None = None
+    kwargs: dict[str, object] | None = None
 
 
 def get_step_fixture_name(step: Step) -> str:
@@ -101,6 +102,7 @@ def when(
     converters: dict[str, Callable[[str], object]] | None = None,
     target_fixture: str | None = None,
     stacklevel: int = 1,
+    **kwargs,
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """When step decorator.
 
@@ -112,7 +114,7 @@ def when(
 
     :return: Decorator function for the step.
     """
-    return step(name, "when", converters=converters, target_fixture=target_fixture, stacklevel=stacklevel)
+    return step(name, "when", converters=converters, target_fixture=target_fixture, stacklevel=stacklevel, **kwargs)
 
 
 def then(
@@ -140,6 +142,7 @@ def step(
     converters: dict[str, Callable[[str], object]] | None = None,
     target_fixture: str | None = None,
     stacklevel: int = 1,
+    **kwargs,
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """Generic step decorator.
 
@@ -169,6 +172,7 @@ def step(
             parser=parser,
             converters=converters,
             target_fixture=target_fixture,
+            kwargs=kwargs,
         )
 
         def step_function_marker() -> StepFunctionContext:

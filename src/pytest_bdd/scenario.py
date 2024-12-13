@@ -230,6 +230,7 @@ def _execute_step_function(
 
         # Filter out the arguments that are not in the function signature
         kwargs = {k: v for k, v in parsed_args.items() if k in func_sig.parameters}
+        kwargs |= context.kwargs
 
         if STEP_ARGUMENT_DATATABLE in func_sig.parameters and step.datatable is not None:
             kwargs[STEP_ARGUMENT_DATATABLE] = step.datatable.raw()

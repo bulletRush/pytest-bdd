@@ -14,7 +14,7 @@ def test_multi_examples():
     pass
 
 
-# @when("in situation: 1", target_fixture="context", case=1)
+@when("in situation: 1", target_fixture="context", case=1)
 @when("in situation: <case>", target_fixture="context")
 def step_when_in_some_situation(case):
     default_d = {

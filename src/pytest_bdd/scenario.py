@@ -14,6 +14,7 @@ test_publish_article = scenario(
 from __future__ import annotations
 
 import contextlib
+import copy
 import logging
 import os
 import re
@@ -71,7 +72,7 @@ def find_fixturedefs_for_step(step: Step, fixturemanager: FixtureManager, node: 
             if step_func_context.type is not None and step_func_context.type != step.type:
                 continue
 
-            match = step_func_context.parser.is_matching(step.name)
+            match = step_func_context.parser.is_matching(step)
             if not match:
                 continue
 
@@ -179,14 +180,15 @@ def get_step_function(request: FixtureRequest, step: Step) -> StepFunctionContex
 
     with inject_fixturedefs_for_step(step=step, fixturemanager=request._fixturemanager, node=request.node):
         try:
-            return cast(StepFunctionContext, request.getfixturevalue(bdd_name))
+            f = request.getfixturevalue(bdd_name)
+            return cast(StepFunctionContext, f)
         except pytest.FixtureLookupError:
             return None
 
 
-def parse_step_arguments(step: Step, context: StepFunctionContext) -> dict[str, object]:
+def parse_step_arguments(step: Step, context: StepFunctionContext, request: FixtureRequest) -> dict[str, object]:
     """Parse step arguments."""
-    parsed_args = context.parser.parse_arguments(step.name)
+    parsed_args = context.parser.parse_arguments(step, request=request)
 
     assert parsed_args is not None, (
         f"Unexpected `NoneType` returned from " f"parse_arguments(...) in parser: {context.parser!r}"
@@ -224,7 +226,7 @@ def _execute_step_function(
     request.config.hook.pytest_bdd_before_step(**kw)
 
     try:
-        parsed_args = parse_step_arguments(step=step, context=context)
+        parsed_args = parse_step_arguments(step=step, context=context, request=request)
 
         # Filter out the arguments that are not in the function signature
         kwargs = {k: v for k, v in parsed_args.items() if k in func_sig.parameters}
@@ -339,21 +341,43 @@ def collect_example_parametrizations(
 ) -> list[ParameterSet] | None:
     parametrizations = []
 
+    # *************************************
+    # support dot product examples
+
     for examples in templated_scenario.examples:
         tags: set = examples.tags or set()
 
         example_marks = [getattr(pytest.mark, tag) for tag in tags]
 
-        for context in examples.as_contexts():
-            param_id = "-".join(context.values())
-            parametrizations.append(
-                pytest.param(
-                    context,
-                    id=param_id,
-                    marks=example_marks,
-                ),
-            )
-
+        if parametrizations:
+            n_parametrizations = []
+            for context in examples.as_contexts():
+                c_param_id = "_".join(context.values())
+                for p in parametrizations:
+                    c = copy.copy(p.values[0])
+                    c.update(context)
+                    param_id = "_".join((p.id, c_param_id))
+                    marks = copy.copy(p.marks)
+                    marks.extend(example_marks)
+                    n_parametrizations.append(
+                        pytest.param(
+                            c,
+                            id=param_id,
+                            marks=marks,
+                        )
+                    )
+            parametrizations = n_parametrizations
+        else:
+            for context in examples.as_contexts():
+                param_id = "-".join(context.values())
+                parametrizations.append(
+                    pytest.param(
+                        context,
+                        id=param_id,
+                        marks=example_marks,
+                    ),
+                )
+    # ************************************
     return parametrizations or None
 
 

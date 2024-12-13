@@ -1,0 +1,26 @@
+@startmindmap
+* given
+ * step
+  * find_unique_name -> 'pytestbdd_stepdef_given_there are {start:d} cucumbers'
+* scenario
+ * get_feature\n获取Feature定义
+  * FeatureParser.parse
+   * _parse_feature_file
+   * _parse_and_add_scenario
+    * parse_scenario
+     * self.parse_steps\n解析step，这里拿到的step还是原始值
+ * _get_scenario_decorator
+  * collect_example_parametrizations\n收集example参数
+  * scenario_wrapper
+   * templated_scenario.render\n渲染example参数，替换step文本
+   * _execute_scenario
+    * get_step_function
+     * inject_fixturedefs_for_step
+      * find_fixturedefs_for_step
+       * step_func_context.parser.is_matching\n找到匹配的step函数
+      * fixturemanager._arg2fixturedefs[bdd_name] = fixturedefs\n使用渲染后的名称注入
+     * request.getfixturevalue\n这里使用渲染后的名称找的step函数
+    * _execute_step_function
+     * parse_step_arguments
+     * call_fixture_func\n执行step函数
+@endmindmap

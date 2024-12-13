@@ -220,6 +220,7 @@ class ScenarioTemplate:
                 keyword=step.keyword,
                 datatable=step.render_datatable(step.datatable, context) if step.datatable else None,
                 docstring=render_string(step.docstring, context) if step.docstring else None,
+                origin=step.name,
             )
             for step in base_steps
         ]
@@ -284,6 +285,7 @@ class Step:
     failed: bool = field(init=False, default=False)
     scenario: ScenarioTemplate | None = field(init=False, default=None)
     background: Background | None = field(init=False, default=None)
+    origin: str | None = None
 
     def __init__(
         self,
@@ -294,6 +296,7 @@ class Step:
         keyword: str,
         datatable: DataTable | None = None,
         docstring: str | None = None,
+        origin: str | None = None,
     ) -> None:
         """Initialize a step.
 
@@ -311,6 +314,7 @@ class Step:
         self.keyword = keyword
         self.datatable = datatable
         self.docstring = docstring
+        self.origin = origin
 
     def __str__(self) -> str:
         """Return a string representation of the step.

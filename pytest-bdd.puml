@@ -1,4 +1,36 @@
 @startmindmap
+* _jb_pytest_runner
+ * pytest_cmdline_main
+  * ...
+   * _main
+    * config.hook.pytest_collection\nfuncargs此时还为空
+     * perform_collect
+      * collect_one_node
+       * pytest_make_collect_report
+        * parsefactories
+    * config.hook.pytest_runtestloop
+     * pytest_runtest_loop
+      * pytest_runtest_protocol
+       * runtestprotocol
+        * call_and_report
+         * pytest_runtest_setup
+          * runner.pytest_runtest_setup
+           * item.session._setupstate.setup
+            * Function.setup
+             * self._request._fillfixtures
+            * Function.__init__
+             * _request = fixtures.TopRequest(self, _ispytest=True)
+              * arg2fixturedefs=pyfuncitem._fixtureinfo.name2fixturedefs.copy()
+      * session.item.[funcargs]
+   * pytest_sessionstart
+    * FixtureManager.__init__
+     * session.config.pluginmanager.register
+      * ...
+       * pytest_plugin_registered
+        * FixtureManager.parsefactories
+         * marker = getfixturemarker
+          * FixtureManager._register_fixture
+           * 添加到`_arg2fixturedefs`中
 * given
  * step
   * find_unique_name -> 'pytestbdd_stepdef_given_there are {start:d} cucumbers'

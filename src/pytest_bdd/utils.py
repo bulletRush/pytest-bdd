@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import base64
+import importlib
+import os
 import pickle
 import re
+import sys
 from inspect import getframeinfo, signature
 from sys import _getframe
 from typing import TYPE_CHECKING, Callable, TypeVar, cast, overload
@@ -104,3 +107,26 @@ def registry_get_safe(registry: WeakKeyDictionary[K, V], key: object, default: T
         return registry.get(key, default)  # type: ignore[arg-type]
     except TypeError:
         return None
+
+
+def iter_modules(path):
+    r_path = os.path.normpath(os.path.abspath(path))
+    while r_path not in sys.path:
+        p_path = os.path.normpath(os.path.join(r_path, os.pardir))
+        if p_path == r_path:
+            break
+        r_path = p_path
+
+    if r_path not in sys.path:
+        sys.path.append(r_path)
+
+    for root, _, file_l in os.walk(path):
+        for f in file_l:
+            if not f.endswith(".py") or f.startswith("__") or f.startswith("_"):
+                continue
+            interface_name = f[:-3]
+            module_path = os.path.relpath(root, r_path).split("/")
+            module_path.append(interface_name)
+            module_path = ".".join(module_path)
+            module = importlib.import_module(module_path)
+            yield module_path, module

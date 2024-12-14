@@ -20,7 +20,7 @@ from .gherkin_parser import Tag as GherkinTag
 from .gherkin_parser import get_gherkin_document
 from .types import STEP_TYPE_BY_PARSER_KEYWORD
 
-PARAM_RE = re.compile(r"<(.+?)>")
+PARAM_RE = re.compile(r"<(.+?)(:.*)?>")
 
 
 def render_string(input_string: str, render_context: Mapping[str, object]) -> str:

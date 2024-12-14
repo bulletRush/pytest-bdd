@@ -44,3 +44,7 @@ Feature: test pytest-bdd step extension
     When in situation: 1
     Then return field: <field:k1> should has value: <value:v11>
     Then return field: <field:k2> should has value: <value:v12>
+
+  Scenario: call general step
+    When in situation: 1
+    Then call general step with <value:hello>

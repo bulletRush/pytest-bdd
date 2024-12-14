@@ -24,18 +24,27 @@ from typing import TYPE_CHECKING, Callable, TypeVar, cast
 from weakref import WeakKeyDictionary
 
 import pytest
-from _pytest.fixtures import FixtureDef, FixtureManager, FixtureRequest, call_fixture_func
+from _pytest.fixtures import (
+    FixtureDef,
+    FixtureFunctionMarker,
+    FixtureManager,
+    FixtureRequest,
+    call_fixture_func,
+    get_real_func,
+    getfixturemarker,
+)
 
 from . import exceptions
 from .compat import getfixturedefs, inject_fixture
 from .feature import get_feature, get_features
-from .steps import StepFunctionContext, get_step_fixture_name, step_function_context_registry
+from .steps import StepFunctionContext, StepNamePrefix, get_step_fixture_name, step_function_context_registry
 from .utils import (
     CONFIG_STACK,
     get_caller_module_locals,
     get_caller_module_path,
     get_required_args,
     identity,
+    iter_modules,
     registry_get_safe,
 )
 
@@ -61,6 +70,7 @@ scenario_wrapper_template_registry: WeakKeyDictionary[Callable[..., object], Sce
 
 def find_fixturedefs_for_step(step: Step, fixturemanager: FixtureManager, node: Node) -> Iterable[FixtureDef[object]]:
     """Find the fixture defs that can parse a step."""
+    found = False
     # happens to be that _arg2fixturedefs is changed during the iteration so we use a copy
     fixture_def_by_name = list(fixturemanager._arg2fixturedefs.items())
     for fixturename, fixturedefs in fixture_def_by_name:
@@ -79,7 +89,37 @@ def find_fixturedefs_for_step(step: Step, fixturemanager: FixtureManager, node: 
             fixturedefs = list(getfixturedefs(fixturemanager, fixturename, node) or [])
             if fixturedef not in fixturedefs:
                 continue
+            found = True
+            yield fixturedef
 
+    if found:
+        return
+
+    name = f"{StepNamePrefix.step_def.value}_{step.type}_{step.name}"
+    general_step_defs = get_general_step_defs()
+    if name not in general_step_defs:
+        return
+
+    for obj_ub in [general_step_defs[name]]:
+        marker = getfixturemarker(obj_ub)
+        if not isinstance(marker, FixtureFunctionMarker):
+            continue
+        obj = obj_ub
+        if marker.name:
+            name = marker.name
+
+        func = get_real_func(obj)
+        fixturemanager._register_fixture(
+            name=name,
+            func=func,
+            nodeid=None,
+            scope=marker.scope,
+            params=marker.params,
+            ids=marker.ids,
+            autouse=marker.autouse,
+        )
+        fixturedefs = list(getfixturedefs(fixturemanager, name, node) or [])
+        for fixturedef in fixturedefs:
             yield fixturedef
 
 
@@ -163,6 +203,37 @@ def inject_fixturedefs_for_step(step: Step, fixturemanager: FixtureManager, node
         yield
     finally:
         del fixturemanager._arg2fixturedefs[bdd_name]
+
+
+def get_steps_def_dir():
+    config = CONFIG_STACK[-1]
+    default_base_dir = os.path.join(os.getcwd(), "steps")
+    path = os.path.normpath(get_from_ini("bdd_steps_def_dir", default_base_dir))
+    if os.path.isabs(path):
+        return path
+    return str(config.rootdir.join(path))
+
+
+GENERAL_STEP_DEFS = None
+
+
+def get_general_step_defs():
+    global GENERAL_STEP_DEFS
+    if GENERAL_STEP_DEFS is not None:
+        return GENERAL_STEP_DEFS
+
+    path = get_steps_def_dir()
+    GENERAL_STEP_DEFS = {}
+    if not os.path.exists(path):
+        return GENERAL_STEP_DEFS
+    for _, module in iter_modules(path):  # type: str,module
+        for k, func in module.__dict__.items():
+            if not k.startswith(f"{StepNamePrefix.step_def.value}_"):
+                continue
+            if k in GENERAL_STEP_DEFS:
+                raise exceptions.StepError(f"duplicated step defs: {k}")
+            GENERAL_STEP_DEFS[k] = func
+    return GENERAL_STEP_DEFS
 
 
 def get_step_function(request: FixtureRequest, step: Step) -> StepFunctionContext | None:

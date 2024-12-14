@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 from pytest_bdd import scenario, then, when
 
 FEATURE_NAME = "ext.feature"
@@ -7,11 +8,6 @@ FEATURE_NAME = "ext.feature"
 @then("show result: <v1> <v2> <v3> <v4>")
 def step_then_show_result(v1, v2, v3, v4):
     print(f"\nshow result: {v1}_{v2}_{v3}_{v4}")
-
-
-@scenario(FEATURE_NAME, "test multi examples")
-def test_multi_examples():
-    pass
 
 
 @when("in situation: 1", target_fixture="context", case=1)
@@ -57,6 +53,11 @@ def step_then_check_field(field, context, value="default"):
     assert context[field] == value
 
 
+@scenario(FEATURE_NAME, "test multi examples")
+def test_multi_examples():
+    pass
+
+
 @scenario(FEATURE_NAME, "variant step test")
 def test_check_new_step():
     pass
@@ -64,4 +65,9 @@ def test_check_new_step():
 
 @scenario(FEATURE_NAME, "default step value")
 def test_default_step_value():
+    pass
+
+
+@scenario(FEATURE_NAME, "call general step")
+def test_call_general_step():
     pass

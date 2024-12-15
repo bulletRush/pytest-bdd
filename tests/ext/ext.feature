@@ -1,13 +1,21 @@
 Feature: test pytest-bdd step extension
   pytest-bdd step extension test, step params alias and constant step params e.g.
 
+  Background:
+    When in situation: 1
+
+  Examples:
+  | case | g1  | v1  |
+  | 1    | g11 | g12 |
+  | 2    | g21 | g22 |
+
   Scenario Outline: test multi examples
     Then show result: <v1> <v2> <v3> <v4>
 
     Examples:
-      | v1 | v2  |
-      | k11  | k21 |
-      | k12  | k22 |
+      | v1  | v2  |
+      | k11 | k21 |
+      | k12 | k22 |
 
     Examples:
       | v3  | v4  |

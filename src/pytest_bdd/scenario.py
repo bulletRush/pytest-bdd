@@ -416,19 +416,27 @@ def collect_example_parametrizations(
     # *************************************
     # support dot product examples
 
-    for examples in templated_scenario.examples:
-        tags: set = examples.tags or set()
+    # templated_scenario.feature.background.examples
+    if templated_scenario.feature.background.examples:
+        examples = copy.copy(templated_scenario.examples)
+        examples.extend(templated_scenario.feature.background.examples)
+    else:
+        examples = templated_scenario.examples
+
+    for example in examples:
+        tags: set = example.tags or set()
 
         example_marks = [getattr(pytest.mark, tag) for tag in tags]
 
         if parametrizations:
             n_parametrizations = []
-            for context in examples.as_contexts():
-                c_param_id = "_".join(context.values())
+            for context in example.as_contexts():
+                # c_param_id = "_".join(context.values())
                 for p in parametrizations:
                     c = copy.copy(p.values[0])
-                    c.update(context)
-                    param_id = "_".join((p.id, c_param_id))
+                    for k, v in context.items():
+                        c.setdefault(k, v)
+                    param_id = "_".join(sorted(c.keys()))
                     marks = copy.copy(p.marks)
                     marks.extend(example_marks)
                     n_parametrizations.append(
@@ -440,7 +448,7 @@ def collect_example_parametrizations(
                     )
             parametrizations = n_parametrizations
         else:
-            for context in examples.as_contexts():
+            for context in example.as_contexts():
                 param_id = "-".join(context.values())
                 parametrizations.append(
                     pytest.param(

@@ -240,6 +240,7 @@ class Background:
     name: str
     description: str
     steps: list[Step]
+    examples: list[ExamplesTable] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Self:
@@ -250,6 +251,7 @@ class Background:
             name=data["name"],
             description=data["description"],
             steps=[Step.from_dict(step) for step in data["steps"]],
+            examples=[ExamplesTable.from_dict(example) for example in data["examples"]],
         )
 
 

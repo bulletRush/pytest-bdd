@@ -355,6 +355,7 @@ class Background:
 
     line_number: int
     steps: list[Step] = field(init=False, default_factory=list)
+    examples: list[Examples] = field(default_factory=list[Examples])
 
     def add_step(self, step: Step) -> None:
         """Add a step to the background.
@@ -485,6 +486,22 @@ class FeatureParser:
         background.steps = self.parse_steps(background_data.steps)
         for step in background.steps:
             step.background = background
+
+        for example_data in background_data.examples:
+            examples = Examples(
+                line_number=example_data.location.line,
+                name=example_data.name,
+                tags=get_tag_names(example_data.tags),
+            )
+            if example_data.table_header is not None:
+                param_names = [cell.value for cell in example_data.table_header.cells]
+                examples.set_param_names(param_names)
+                if example_data.table_body is not None:
+                    for row in example_data.table_body:
+                        values = [cell.value or "" for cell in row.cells]
+                        examples.add_example(values)
+                background.examples.append(examples)
+
         return background
 
     def _parse_feature_file(self) -> GherkinDocument:

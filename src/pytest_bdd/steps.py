@@ -83,6 +83,7 @@ def given(
     converters: dict[str, Callable[[str], object]] | None = None,
     target_fixture: str | None = None,
     stacklevel: int = 1,
+    **kwargs,
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """Given step decorator.
 
@@ -94,7 +95,7 @@ def given(
 
     :return: Decorator function for the step.
     """
-    return step(name, "given", converters=converters, target_fixture=target_fixture, stacklevel=stacklevel)
+    return step(name, "given", converters=converters, target_fixture=target_fixture, stacklevel=stacklevel, **kwargs)
 
 
 def when(
@@ -122,6 +123,7 @@ def then(
     converters: dict[str, Callable[[str], object]] | None = None,
     target_fixture: str | None = None,
     stacklevel: int = 1,
+    **kwargs,
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """Then step decorator.
 
@@ -133,7 +135,7 @@ def then(
 
     :return: Decorator function for the step.
     """
-    return step(name, "then", converters=converters, target_fixture=target_fixture, stacklevel=stacklevel)
+    return step(name, "then", converters=converters, target_fixture=target_fixture, stacklevel=stacklevel, **kwargs)
 
 
 def step(

@@ -42,6 +42,7 @@ from .utils import (
     CONFIG_STACK,
     get_caller_module_locals,
     get_caller_module_path,
+    get_fixture_value,
     get_required_args,
     identity,
     iter_modules,
@@ -66,6 +67,36 @@ STEP_ARGUMENT_DOCSTRING = "docstring"
 STEP_ARGUMENTS_RESERVED_NAMES = {STEP_ARGUMENT_DATATABLE, STEP_ARGUMENT_DOCSTRING}
 
 scenario_wrapper_template_registry: WeakKeyDictionary[Callable[..., object], ScenarioTemplate] = WeakKeyDictionary()
+
+
+def _find_fixturedefs_from_general(
+    step: Step, fixturemanager: FixtureManager, node: Node
+) -> Iterable[FixtureDef[object]]:
+    name = f"{StepNamePrefix.step_def.value}_{step.type}_{step.name}"
+    general_step_defs = get_general_step_defs()
+    if name not in general_step_defs:
+        return
+
+    for obj_ub in [general_step_defs[name]]:
+        marker = getfixturemarker(obj_ub)
+        if not isinstance(marker, FixtureFunctionMarker):
+            continue
+        obj = obj_ub
+        if marker.name:
+            name = marker.name
+
+        func = get_real_func(obj)
+        fixturemanager._register_fixture(
+            name=name,
+            func=func,
+            nodeid=None,
+            scope=marker.scope,
+            params=marker.params,
+            ids=marker.ids,
+            autouse=marker.autouse,
+        )
+        fixturedefs = list(getfixturedefs(fixturemanager, name, node) or [])
+        yield from fixturedefs
 
 
 def find_fixturedefs_for_step(step: Step, fixturemanager: FixtureManager, node: Node) -> Iterable[FixtureDef[object]]:
@@ -95,32 +126,8 @@ def find_fixturedefs_for_step(step: Step, fixturemanager: FixtureManager, node: 
     if found:
         return
 
-    name = f"{StepNamePrefix.step_def.value}_{step.type}_{step.name}"
-    general_step_defs = get_general_step_defs()
-    if name not in general_step_defs:
-        return
-
-    for obj_ub in [general_step_defs[name]]:
-        marker = getfixturemarker(obj_ub)
-        if not isinstance(marker, FixtureFunctionMarker):
-            continue
-        obj = obj_ub
-        if marker.name:
-            name = marker.name
-
-        func = get_real_func(obj)
-        fixturemanager._register_fixture(
-            name=name,
-            func=func,
-            nodeid=None,
-            scope=marker.scope,
-            params=marker.params,
-            ids=marker.ids,
-            autouse=marker.autouse,
-        )
-        fixturedefs = list(getfixturedefs(fixturemanager, name, node) or [])
-        for fixturedef in fixturedefs:
-            yield fixturedef
+    for fixturedef in _find_fixturedefs_from_general(step, fixturemanager, node):
+        yield fixturedef
 
 
 # Function copied from pytest 8.0 (removed in later versions).
@@ -298,10 +305,24 @@ def _execute_step_function(
 
     try:
         parsed_args = parse_step_arguments(step=step, context=context, request=request)
+        kwargs = {}
+        for param in func_sig.parameters.values():
+            name = param.name
+            if name in parsed_args:
+                kwargs[name] = parsed_args[name]
+                continue
+            if name in context.kwargs:
+                kwargs[name] = context.kwargs[name]
+                continue
+            try:
+                kwargs[name] = get_fixture_value(name, request=request)
+            except pytest.FixtureLookupError:
+                if param.kind == param.POSITIONAL_OR_KEYWORD and param.default is param.empty:
+                    raise
 
         # Filter out the arguments that are not in the function signature
-        kwargs = {k: v for k, v in parsed_args.items() if k in func_sig.parameters}
-        kwargs |= context.kwargs
+        # kwargs = {k: v for k, v in parsed_args.items() if k in func_sig.parameters}
+        # kwargs |= context.kwargs
 
         if STEP_ARGUMENT_DATATABLE in func_sig.parameters and step.datatable is not None:
             kwargs[STEP_ARGUMENT_DATATABLE] = step.datatable.raw()
@@ -309,9 +330,9 @@ def _execute_step_function(
             kwargs[STEP_ARGUMENT_DOCSTRING] = step.docstring
 
         # Fill the missing arguments requesting the fixture values
-        kwargs |= {
-            arg: request.getfixturevalue(arg) for arg in get_required_args(context.step_func) if arg not in kwargs
-        }
+        # kwargs |= {
+        #     arg: request.getfixturevalue(arg) for arg in get_required_args(context.step_func) if arg not in kwargs
+        # }
 
         kw["step_func_args"] = kwargs
 
@@ -417,7 +438,7 @@ def collect_example_parametrizations(
     # support dot product examples
 
     # templated_scenario.feature.background.examples
-    if templated_scenario.feature.background.examples:
+    if templated_scenario.feature.background and templated_scenario.feature.background.examples:
         examples = copy.copy(templated_scenario.examples)
         examples.extend(templated_scenario.feature.background.examples)
     else:
@@ -466,6 +487,7 @@ def scenario(
     scenario_name: str,
     encoding: str = "utf-8",
     features_base_dir: str | None = None,
+    example_converters=None,
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """Scenario decorator.
 

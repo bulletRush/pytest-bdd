@@ -30,15 +30,19 @@ def step_when_in_some_situation(case):
         "k16": False,
         "k17": False,
         "k18": True,
+        "k19": [1, 2, 3],
+        "k21": [1.1, 2.2, 3.3],
     }
     d = {
         "1": {
             "k1": "v11",
             "k2": "v12",
+            "k20": 10,
         },
         "2": {
             "k1": "v21",
             "k2": "v22",
+            "k20": 20,
         },
     }
     for _, v in d.items():

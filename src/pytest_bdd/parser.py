@@ -20,7 +20,7 @@ from .gherkin_parser import Tag as GherkinTag
 from .gherkin_parser import get_gherkin_document
 from .types import STEP_TYPE_BY_PARSER_KEYWORD
 
-PARAM_RE = re.compile(r"<(.+?)(:.*)?>")
+PARAM_RE = re.compile(r"(?<!\\)<(\w+)(\.([\w]*?))?:(.*?)>")
 
 
 def render_string(input_string: str, render_context: Mapping[str, object]) -> str:
@@ -213,7 +213,7 @@ class ScenarioTemplate:
         base_steps = self.all_background_steps + self._steps
         scenario_steps = [
             Step(
-                name=render_string(step.name, context),
+                name=render_string(step.name, {}),
                 type=step.type,
                 indent=step.indent,
                 line_number=step.line_number,

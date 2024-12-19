@@ -13,6 +13,8 @@ from sys import _getframe
 from typing import TYPE_CHECKING, Callable, TypeVar, cast, overload
 from weakref import WeakKeyDictionary
 
+from pytest import FixtureLookupError, FixtureRequest
+
 if TYPE_CHECKING:
     from _pytest.config import Config
     from _pytest.pytester import RunResult
@@ -130,3 +132,13 @@ def iter_modules(path):
             module_path = ".".join(module_path)
             module = importlib.import_module(module_path)
             yield module_path, module
+
+
+def get_fixture_value(key: str, request: FixtureRequest):
+    try:
+        pytest_bdd_example = request.getfixturevalue("_pytest_bdd_example")
+        if key in pytest_bdd_example:
+            return pytest_bdd_example[key]
+        return request.getfixturevalue(key)
+    except FixtureLookupError:
+        return request.getfixturevalue(key)

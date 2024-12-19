@@ -83,3 +83,23 @@ def test_multi_examples2(testdir):
     )
     result = testdir.runpytest("--capture=fd", "-v")
     result.assert_outcomes(passed=4, failed=0)
+
+
+def test_param_re():
+    from pytest_bdd.parser import render_string
+
+    tab = [
+        ("one <ins_type:SA5>，<mem.i:4> GB、<cpu.i:2> Core Instance", "one <ins_type>，<mem> GB、<cpu> Core Instance"),
+        (
+            "return field: <field:k19> should has value: <value.li:1,2,3>",
+            "return field: <field> should has value: <value>",
+        ),
+        (
+            "return field: <field:k20> should has value: <value:hello>",
+            "return field: <field> should has value: <value>",
+        ),
+    ]
+
+    for origin, want in tab:
+        real = render_string(origin, {})
+        assert want == real

@@ -42,11 +42,14 @@ Feature: test pytest-bdd step extension
     Then return field: <field:k16> should has value: <value.b:>  # bool value convert
     Then return field: <field:k17> should has value: <value.b:0>  # bool value convert
     Then return field: <field:k18> should has value: <value.b:1>  # bool value convert
+    Then return field: <field:k19> should has value: <value.li:1,2,3>  # int list
+    Then return field: <field:k20> should has value: <value.Ai:v3>  # alias to int
+    Then return field: <field:k21> should has value: <value.lf:1.1, 2.2, 3.3>  # alias to float
 
     Examples:
-      | case | v1  | v2  |
-      | 1    | v11 | v12 |
-      | 2    | v21 | v22 |
+      | case | v1  | v2  | v3 |
+      | 1    | v11 | v12 | 10 |
+      | 2    | v21 | v22 | 20 |
 
   Scenario: default step value
     When in situation: 1

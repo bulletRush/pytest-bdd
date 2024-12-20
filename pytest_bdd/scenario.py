@@ -155,7 +155,7 @@ def _execute_step_function(request, scenario, step, step_func):
                 kwargs[arg] = v
             elif arg in step.alias_params:
                 # step params alias
-                kwargs[arg] = request.getfixturevalue(step.alias_params[arg])
+                kwargs[arg] = step.alias_convert[arg](request)
             elif arg in extra_args:
                 kwargs[arg] = extra_args[arg]
             else:

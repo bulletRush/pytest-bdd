@@ -5,6 +5,7 @@ import textwrap
 from collections import OrderedDict
 
 import six
+import json
 
 from . import types, exceptions
 
@@ -348,7 +349,7 @@ class Step(object):
         pass
 
     """Step."""
-    VARIANT_STEP_PARAM_RE = re.compile(r"(?<!\\)<(\w+)(\.([\w]?))?:(.*?)>")  # variant step params regex
+    VARIANT_STEP_PARAM_RE = re.compile(r"(?<!\\)<(\w+)(\.([\w]*?))?:(.*?)>")  # variant step params regex
     GENERAL_STEP_PARAM_RE = re.compile(r"(?<!\\)<(\w+)>")  # general step params regex
     SKIP_MARK = _SkipMark()
 
@@ -374,6 +375,7 @@ class Step(object):
         self.background = None
         self.constant_params = {}
         self.alias_params = {}
+        self.alias_convert = {}
 
         self._init_step_args_convert()
 
@@ -411,19 +413,34 @@ class Step(object):
             "S": lambda x: self.SKIP_MARK,  # skip, use step default value
             "A": None,  # alias to another args
             "l": lambda x: [a.strip() for a in x.split(",")],  # list
-            "li": lambda x: [int(a) for a in x.split(",")],  # int list
-            "lf": lambda x: [float(a) for a in x.split(",")],  # float list
+            "j": lambda x: json.loads(x),
         }
-        if convert in converts:
-            if convert == "A":
-                self.alias_params[key] = value
-            else:
-                self.constant_params[key] = converts[convert](value)
-            return
-        raise exceptions.ExampleError(
+        e = exceptions.ExampleError(
             "unknown constant step value convert(valid: [{0}])".format(",".join(converts.keys())),
             self.line_number, self.name, convert
         )
+
+        if convert[0] == "A":
+            if len(convert) > 1:
+                f = converts[convert[-1]]
+                for c in convert[:-1][1:-1]:
+                    if c not in converts:
+                        raise e
+                    f = lambda x: converts[c](f(x))
+            else:
+                f = lambda x: x
+
+            self.alias_params[key] = value
+            self.alias_convert[key] = lambda request: f(request.getfixturevalue(value))
+        else:
+            for c in convert:
+                if c not in converts:
+                    raise e
+                if isinstance(value, list):
+                    value = [converts[c](v) for v in value]
+                else:
+                    value = converts[c](value)
+            self.constant_params[key] = value
 
     def _init_step_args_convert(self):
         for param in self.VARIANT_STEP_PARAM_RE.finditer(self.name):
